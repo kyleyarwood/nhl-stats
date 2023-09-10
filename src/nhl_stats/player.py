@@ -9,7 +9,7 @@ from .constants import API_URL, API_VERSION, DEFAULT_TIMEOUT
 class Player:
     '''Represents an NHL player'''
 
-    ATTRIBUTE_TO_API_ATTRIBUTE = {
+    _ATTRIBUTE_TO_API_ATTRIBUTE = {
         'name': 'fullName',
         'number': 'primaryNumber',
         'birth_date': 'birthDate',
@@ -53,6 +53,7 @@ class Player:
         Parameters:
             stats: the type of stats, has to belong to Player.VALID_STATS
             season: which season you want stats for, e.g. '20162017'
+                - will default to current season
         Returns:
             TBD
         '''
@@ -102,12 +103,12 @@ class Player:
             self._log.exception('Ran into a problem with API output: %s', error)
             raise error
 
-        for attribute, api_attribute in Player.ATTRIBUTE_TO_API_ATTRIBUTE.items():
+        for attribute, api_attribute in Player._ATTRIBUTE_TO_API_ATTRIBUTE.items():
             setattr(self, attribute, data.get(api_attribute, None))
         self._loaded_basic_info = True
 
     def __getattr__(self, __name: str) -> Any:
-        if __name in Player.ATTRIBUTE_TO_API_ATTRIBUTE:
+        if __name in Player._ATTRIBUTE_TO_API_ATTRIBUTE:
             self._get_basic_info()
         else:
             pass
