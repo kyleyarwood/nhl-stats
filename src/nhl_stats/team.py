@@ -1,8 +1,11 @@
+'''Module for getting teams and team info'''
 import logging
+from typing import Any
 import requests
 
 from .constants import API_URL, API_VERSION, DEFAULT_TIMEOUT
 from .player import Player
+
 
 LOG = logging.getLogger('team_logger')
 
@@ -41,6 +44,7 @@ class Team:
 
     def __init__(self, team_id: int):
         self.team_id = team_id
+        self._loaded_basic_info = False
 
     def load_basic_info(self, basic_info: dict) -> None:
         '''
@@ -50,8 +54,36 @@ class Team:
         '''
         for attribute, api_attribute in Team.ATTRIBUTE_TO_API_ATTRIBUTE.items():
             setattr(self, attribute, basic_info.get(api_attribute))
+        self._loaded_basic_info = True
+
+    def _get_basic_info(self) -> None:
+        if self._loaded_basic_info:
+            return
+        url = f'{API_URL}/{API_VERSION}/teams/{self.team_id}'
+
+        try:
+            response = requests.get(url, timeout=DEFAULT_TIMEOUT)
+            response.raise_for_status()
+            data = response.json()['teams'][0]
+        except requests.exceptions.HTTPError as error:
+            LOG.exception(
+                'Received an HTTPError when trying to get team %i: %s', self.team_id, error
+            )
+            raise error
+        except KeyError as error:
+            LOG.exception('Ran into a problem with API output: %s', error)
+            raise error
+        self.load_basic_info(data)
 
     def get_roster(self, season: str = '') -> list['Player']:
+        '''
+        Gets team roster for specified season
+
+        Parameters:
+            season: season that you want the roster for, e.g. '20162017'
+        Returns:
+            a list of Player objects representing the players on the roster
+        '''
         params = {'expand': 'team.roster'}
         if season:
             params['season'] = season
@@ -73,4 +105,11 @@ class Team:
             raise error
 
         return [Player(player_id=player_info['person']['id']) for player_info in data]
+
+    def __getattr__(self, __name) -> Any:
+        if __name in Team.ATTRIBUTE_TO_API_ATTRIBUTE:
+            self._get_basic_info()
+        else:
+            pass
+        return self.__getattribute__(__name)
         

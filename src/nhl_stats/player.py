@@ -1,9 +1,10 @@
-'''Class for player info and stats'''
+'''Module for getting player info and stats'''
 import logging
 from typing import Any
 import requests
 
 from .constants import API_URL, API_VERSION, DEFAULT_TIMEOUT
+
 
 class Player:
     '''Represents an NHL player'''
