@@ -10,7 +10,7 @@ class Player:
 
     ATTRIBUTE_TO_API_ATTRIBUTE = {
         'name': 'fullName',
-        'number': 'playerNumber',
+        'number': 'primaryNumber',
         'birth_date': 'birthDate',
         'birth_city': 'birthCity',
         'birth_state_province': 'birthStateProvince',
@@ -28,29 +28,31 @@ class Player:
         self.player_id = player_id
         self._loaded_basic_info = False
         self._log = logging.getLogger('player_log')
-        for attribute in Player.ATTRIBUTE_TO_API_ATTRIBUTE:
-            setattr(self, attribute, None)
 
     def _get_basic_info(self) -> None:
         if self._loaded_basic_info:
             return
-        url = f'{API_URL}/{API_VERSION}/player/{self.player_id}'
+        url = f'{API_URL}/{API_VERSION}/people/{self.player_id}'
         try:
             response = requests.get(url, timeout=5)
             response.raise_for_status()
+            data = response.json()['people'][0]
         except requests.exceptions.HTTPError as error:
             self._log.exception(
                 'Received an HTTPError when trying to get player %i: %s', self.player_id, error
             )
             raise error
-        data = response.json()
-        for attribute, api_attribute in Player.ATTRIBUTE_TO_API_ATTRIBUTE: # pylint: disable=unbalanced-dict-unpacking
+        except KeyError as error:
+            self._log.exception('Ran into a problem with API output: %s', error)
+        
+        for attribute, api_attribute in Player.ATTRIBUTE_TO_API_ATTRIBUTE.items():
             setattr(self, attribute, data.get(api_attribute, None))
         self._loaded_basic_info = True
 
-    def __getattribute__(self, __name: str) -> Any:
-        if __name not in Player.ATTRIBUTE_TO_API_ATTRIBUTE:
-            return None
-        self._get_basic_info()
-        return getattr(self, __name)
+    def __getattr__(self, __name: str) -> Any:
+        if __name in Player.ATTRIBUTE_TO_API_ATTRIBUTE:
+            self._get_basic_info()
+        else:
+            pass
+        return self.__getattribute__(__name)
     
