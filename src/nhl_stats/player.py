@@ -3,7 +3,7 @@ import logging
 from typing import Any
 import requests
 
-from .constants import API_URL, API_VERSION
+from .constants import API_URL, API_VERSION, DEFAULT_TIMEOUT
 
 class Player:
     '''Represents an NHL player'''
@@ -25,6 +25,7 @@ class Player:
     }
 
     VALID_STATS = {
+        'statsSingleSeason',
         'yearByYear',
         'homeAndAway',
         'winLoss',
@@ -66,7 +67,7 @@ class Player:
             params['season'] = season
 
         try:
-            response = requests.get(url, params=params, timeout=5)
+            response = requests.get(url, params=params, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             data = response.json()['stats']
         except requests.exceptions.HTTPError as error:
@@ -88,7 +89,7 @@ class Player:
         url = f'{API_URL}/{API_VERSION}/people/{self.player_id}'
 
         try:
-            response = requests.get(url, timeout=5)
+            response = requests.get(url, timeout=DEFAULT_TIMEOUT)
             response.raise_for_status()
             data = response.json()['people'][0]
         except requests.exceptions.HTTPError as error:
